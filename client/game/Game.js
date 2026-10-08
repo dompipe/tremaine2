@@ -37,6 +37,7 @@ export class Game {
     this.ctx = canvas.getContext("2d");
 
     this.input = new Input();
+    this.input.bindVirtualDpad?.();
     this.theme = Theme;
 
     this.mode = "explore";
@@ -65,8 +66,7 @@ export class Game {
     // ============================
 
     this.campaign = new CampaignMap();
-
-    this.refreshCurrentGrid();
+    this.roomManager = new RoomManager();
 
     // future persistent world object
     // this.worldState = new WorldState();
@@ -110,6 +110,7 @@ export class Game {
 
     this.raidCompleted = 0;
     this.raidsCompleted = 0;
+    this.currentRaid = this.getCurrentRaid();
     this.refreshCurrentGrid();
 
     // ============================
@@ -443,8 +444,26 @@ export class Game {
           const txt =
             await r.text();
 
-          const n =
+          let n =
             Number(txt);
+
+          if (
+            !Number.isFinite(n)
+          ) {
+            try {
+              const payload =
+                JSON.parse(
+                  txt
+                );
+
+              n =
+                Number(
+                  payload?.playersOnline ??
+                  payload?.count ??
+                  payload?.online
+                );
+            } catch { }
+          }
 
           this.playersOnline =
             Number.isFinite(n)
@@ -577,18 +596,19 @@ export class Game {
 
   isRaidRoom() {
 
-    const p =
-      this.state.player;
-
     const r =
       this.currentRaid;
 
+    if (!r) {
+      return false;
+    }
+
     return (
 
-      p.roomX ===
+      this.state.roomX ===
       r.roomX &&
 
-      p.roomY ===
+      this.state.roomY ===
       r.roomY &&
 
       (
@@ -715,8 +735,8 @@ export class Game {
       const rx = (p.x <= 0 ? -1 : p.x >= this.currentGrid[0].length - 1 ? 1 : 0);
       const ry = (p.y <= 0 ? -1 : p.y >= this.currentGrid.length - 1 ? 1 : 0);
       if (rx || ry) {
-        p.roomX = (p.roomX || 25) + rx;
-        p.roomY = (p.roomY || 25) + ry;
+        this.state.roomX = (this.state.roomX || 25) + rx;
+        this.state.roomY = (this.state.roomY || 25) + ry;
         this.refreshCurrentGrid();
         p.x = Math.floor(this.currentGrid[0].length / 2);
         p.y = Math.floor(this.currentGrid.length / 2);
@@ -810,13 +830,52 @@ this.refreshCurrentGrid();
       roomY,
 
       () => {
-
-this.refreshCurrentGrid();
+        return this.createRoomGrid(
+          depth,
+          roomX,
+          roomY
+        );
 
       }
 
     );
 
+  }
+  cloneGrid(grid) {
+    if (typeof structuredClone === "function") {
+      return structuredClone(grid);
+    }
+
+    return JSON.parse(
+      JSON.stringify(
+        grid
+      )
+    );
+  }
+  createRoomGrid(depth, roomX, roomY) {
+    const node =
+      this.campaign?.nodes?.[depth - 1];
+
+    if (
+      node &&
+      roomX === 25 &&
+      roomY === 25
+    ) {
+      return this.cloneGrid(
+        node.grid
+      );
+    }
+
+    const seed =
+      this.getRoomSeed(
+        depth,
+        roomX,
+        roomY
+      );
+
+    return this.campaign.generateGrid(
+      seed
+    );
   }
 getRoomKey(depth = this.state.depth,
            roomX = this.state.roomX,
@@ -855,12 +914,28 @@ getRoomKey(depth = this.state.depth,
     const g = this.getCurrentRoom();
     this.enemySquads = [];
 
-    const findWalkable = () => {
+    const isPlayerTile = (x, y) =>
+      x === this.state.player.x &&
+      y === this.state.player.y;
+
+    const matchesAny = (x, y, positions = []) =>
+      positions.some(
+        pos =>
+          pos.x === x &&
+          pos.y === y
+      );
+
+    const findWalkable = (exclude = []) => {
       while (true) {
         const x = Math.floor(Math.random() * g[0].length);
         const y = Math.floor(Math.random() * g.length);
-        const occupiedByPlayer = x === this.state.player.x && y === this.state.player.y;
-        if (!g[y][x].wall && !occupiedByPlayer) return { x, y };
+        if (
+          !g[y][x].wall &&
+          !isPlayerTile(x, y) &&
+          !matchesAny(x, y, exclude)
+        ) {
+          return { x, y };
+        }
       }
     };
 
@@ -875,7 +950,19 @@ getRoomKey(depth = this.state.depth,
         { x: pos.x - 1, y: pos.y },
         { x: pos.x + 1, y: pos.y },
         { x: pos.x, y: pos.y + 1 }
-      ].map(candidate => this.isWalkable(candidate.x, candidate.y) ? candidate : findWalkable());
+      ].reduce((positions, candidate) => {
+        const occupied =
+          isPlayerTile(candidate.x, candidate.y) ||
+          matchesAny(candidate.x, candidate.y, [pos, ...positions]);
+
+        positions.push(
+          this.isWalkable(candidate.x, candidate.y) && !occupied
+            ? candidate
+            : findWalkable([pos, ...positions])
+        );
+
+        return positions;
+      }, []);
 
       this.enemySquads.push({
         leader: { id: "l" + i, name: `Depth ${depth} Enemy Leader`, x: pos.x, y: pos.y, hp: 10 + depthHp, atk: 3 + depthAtk, def: 1 + depthDef },

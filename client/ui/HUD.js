@@ -67,8 +67,8 @@ renderChronicle() {
   renderMiniMap() {
     const game = this.game;
     const player = game?.state?.player || game?.player || {};
-    const roomX = player.roomX ?? 25;
-    const roomY = player.roomY ?? 25;
+    const roomX = game?.state?.roomX ?? player.roomX ?? 25;
+    const roomY = game?.state?.roomY ?? player.roomY ?? 25;
     const raid = game.currentRaid || {};
     const tx = Number(raid.roomX ?? roomX);
     const ty = Number(raid.roomY ?? roomY);
@@ -119,10 +119,10 @@ renderChronicle() {
       (game.campaign?.currentIndex ?? 0) + 1;
 
     const roomX =
-      player.roomX ?? 25;
+      game?.state?.roomX ?? player.roomX ?? 25;
 
     const roomY =
-      player.roomY ?? 25;
+      game?.state?.roomY ?? player.roomY ?? 25;
 
     const completed =
       node?.raidsCompleted ?? 0;

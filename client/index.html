@@ -288,6 +288,43 @@
       box-shadow:var(--shadow);
       pointer-events:none;
     }
+    #mobileDpad{
+      position:absolute;
+      left:18px;
+      bottom:194px;
+      z-index:45;
+      display:none;
+      grid-template-columns:54px 54px 54px;
+      grid-template-rows:54px 54px 54px;
+      gap:8px;
+      pointer-events:auto;
+      touch-action:none;
+    }
+    .dpad-btn{
+      width:54px;
+      height:54px;
+      border-radius:16px;
+      border:1px solid rgba(130,148,170,.8);
+      background:rgba(255,255,255,.9);
+      color:#102033;
+      box-shadow:0 8px 18px rgba(22,36,58,.16);
+      font-size:22px;
+      font-weight:900;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      user-select:none;
+      -webkit-user-select:none;
+    }
+    .dpad-btn.active{
+      transform:translateY(1px) scale(.98);
+      background:#dcebff;
+      border-color:#7db9ee;
+    }
+    .dpad-up{grid-column:2;grid-row:1;}
+    .dpad-left{grid-column:1;grid-row:2;}
+    .dpad-right{grid-column:3;grid-row:2;}
+    .dpad-down{grid-column:2;grid-row:3;}
     .inset-title{
       position:absolute;left:10px;top:8px;font-size:11px;font-weight:900;letter-spacing:.08em;text-transform:uppercase;color:#4d6280;
     }
@@ -328,6 +365,7 @@
       .battle-log{max-height:18vh;}
       #bottomBar{height:150px;}
       #campaignInset{display:none;}
+      #mobileDpad{display:grid;}
     }
   </style>
 </head>
@@ -336,6 +374,13 @@
   <canvas id="mapCanvas"></canvas>
 
   <div id="hud"></div>
+
+  <div id="mobileDpad" aria-label="Movement controls">
+    <button class="dpad-btn dpad-up" data-dpad-key="ArrowUp" type="button" aria-label="Move up">↑</button>
+    <button class="dpad-btn dpad-left" data-dpad-key="ArrowLeft" type="button" aria-label="Move left">←</button>
+    <button class="dpad-btn dpad-right" data-dpad-key="ArrowRight" type="button" aria-label="Move right">→</button>
+    <button class="dpad-btn dpad-down" data-dpad-key="ArrowDown" type="button" aria-label="Move down">↓</button>
+  </div>
 
   <div id="battleModal">
     <div class="battle-shell">

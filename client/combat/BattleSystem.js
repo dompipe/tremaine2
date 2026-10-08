@@ -225,7 +225,13 @@ export class BattleSystem {
 
   log(message) {
 
-    this.log(message);
+    this.logs.push(message);
+
+    if (
+      this.logs.length > 80
+    ) {
+      this.logs.shift();
+    }
 
     this.onLog?.(message, this);
 

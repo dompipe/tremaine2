@@ -2,5 +2,8 @@
   "name": "tremaine-dungeon-engine",
   "version": "1.0.0",
   "type": "module",
-  "private": true
+  "private": true,
+  "scripts": {
+    "test": "node tests/server-smoke.mjs"
+  }
 }
